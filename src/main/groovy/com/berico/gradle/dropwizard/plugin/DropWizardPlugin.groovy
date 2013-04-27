@@ -1,13 +1,10 @@
 package com.berico.gradle.dropwizard.plugin
 
-import org.gradle.api.artifacts.Configuration
-import org.gradle.api.internal.file.copy.CopyAction;
-import org.gradle.api.internal.file.copy.CopySpecImpl;
-import org.gradle.api.tasks.JavaExec
-import org.gradle.api.tasks.TaskContainer;
-import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.tasks.JavaExec
+
+import eu.appsatori.gradle.fatjar.FatJarPlugin
 
 
 class DropWizardPlugin implements Plugin<Project> {
@@ -18,17 +15,12 @@ class DropWizardPlugin implements Plugin<Project> {
 	private DropWizardPluginExtension pluginExtension
 
 	public void apply(Project project) {
-
+		project.extensions.create('dropwizard', DropWizardPluginExtension)
 		this.project = project
 		project.apply(plugin: 'java')
-		addPluginConvention()
+		project.plugins.apply FatJarPlugin
 		addJavaExecTask()
 		addFatJarTask()
-	}
-
-	private void addPluginConvention() {
-		pluginExtension = new DropWizardPluginExtension(project)
-		project.convention.plugins.dropwizard = pluginExtension
 	}
 
 
@@ -37,16 +29,13 @@ class DropWizardPlugin implements Plugin<Project> {
 		run.description = "Runs this project as a JVM application"
 		run.group = "dropwizard"
 		run.classpath = project.sourceSets.main.runtimeClasspath
-		run.conventionMapping.main = { pluginExtension.mainClassName }
+		run.conventionMapping.main = { project.dropwizard.mainClassName }
 	}
 
-	private void addFatJarTask() {
-		def tasks = project.getTasksByName("jar", false)
-		for( i in tasks ) {
-			Jar jar = (Jar)i
-			CopySpecImpl lib = jar.getCopyAction().rootSpec.addFirst().into('lib')
-
-			lib.addChild().from(project.configurations.runtime)
-		}
+	def addFatJarTask( ) {
+		def fatjar = project.tasks.findByName("fatJar")
+		fatjar.group = "dropwizard"
 	}
+
+
 }
