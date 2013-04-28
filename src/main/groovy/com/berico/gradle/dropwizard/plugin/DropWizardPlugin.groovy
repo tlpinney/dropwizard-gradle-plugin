@@ -5,6 +5,7 @@ import org.gradle.api.Project
 import org.gradle.api.file.CopySpec
 import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.bundling.Tar
+import org.gradle.api.tasks.application.CreateStartScripts
 import eu.appsatori.gradle.fatjar.FatJarPlugin
 
 
@@ -18,6 +19,10 @@ class DropWizardPlugin implements Plugin<Project> {
 	static final String TASK_DIST_TAR_NAME = "distTar"
 	
 	static final String DROPWIZ_GROUP = "dropwizard"
+	
+	static final String TASK_START_SCRIPTS_NAME = "startScripts"
+	
+	static final String FAT_JAR_TASK_NAME = "fatJar"
 
 	public void apply(Project project) {
 		project.extensions.create('dropwizard', DropWizardPluginExtension)
@@ -26,6 +31,7 @@ class DropWizardPlugin implements Plugin<Project> {
 		project.plugins.apply FatJarPlugin
 		addJavaExecTask()
 		addFatJarTask()
+		addCreateScriptsTask()
 		addArchiveTask()
 	}
 
@@ -39,8 +45,8 @@ class DropWizardPlugin implements Plugin<Project> {
 	}
 
 	def addFatJarTask( ) {
-		def fatjar = project.tasks.findByName("fatJar")
-		fatjar.group = "dropwizard"
+		def fatjar = project.tasks.findByName(FAT_JAR_TASK_NAME)
+		fatjar.group = DROPWIZ_GROUP
 	}
 	
 	def addArchiveTask( ) {
@@ -54,10 +60,20 @@ class DropWizardPlugin implements Plugin<Project> {
         }
 	}
 	
-	private CopySpec configureDistSpec() {
+	def addCreateScriptsTask() {
+		def startScripts = project.tasks.add(TASK_START_SCRIPTS_NAME, CreateStartScripts)
+		startScripts.description = "Creates OS specific scripts to run the project as a JVM application."
+		//since this is a fat jar app we don't need to include the runtime deps
+		startScripts.classpath = project.tasks[FAT_JAR_TASK_NAME].outputs.files
+		startScripts.conventionMapping.mainClassName = { project.dropwizard.mainClassName }
+		startScripts.conventionMapping.applicationName = {project.name}
+		startScripts.conventionMapping.outputDir = { new File(project.buildDir, 'scripts') }
+	}
+	
+	def CopySpec configureDistSpec() {
 		def distSpec = project.copySpec {}
-		def jar = project.tasks["fatJar"]
-		//def startScripts = project.tasks[TASK_START_SCRIPTS_NAME]
+		def jar = project.tasks[FAT_JAR_TASK_NAME]
+		def startScripts = project.tasks[TASK_START_SCRIPTS_NAME]
 
 		distSpec.with {
 			from(project.file("src/dist"))
@@ -65,10 +81,10 @@ class DropWizardPlugin implements Plugin<Project> {
 			into("lib") {
 				from(jar)
 			}
-			//into("bin") {
-			//	from(startScripts)
-			//	fileMode = 0755
-			//}
+			into("bin") {
+				from(startScripts)
+				fileMode = 0755
+			}
 		}
 
 		distSpec
