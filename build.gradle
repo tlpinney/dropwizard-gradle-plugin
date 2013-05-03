@@ -23,12 +23,19 @@ dependencies {
 task wrapper(type: Wrapper) {
 	gradleVersion = '1.5'
 }
+//
+//uploadArchives {
+//	repositories {
+//		mavenDeployer {
+//			repository(url: uri('../repo'))
+//		}
+//	}
+//}
 
 uploadArchives {
 	repositories {
 		mavenDeployer {
-			repository(url: uri('../repo'))
+			repository(url: uri('/home/camechis/.m2/repository'))
 		}
 	}
 }
-

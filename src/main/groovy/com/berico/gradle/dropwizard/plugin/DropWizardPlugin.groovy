@@ -15,24 +15,36 @@ class DropWizardPlugin implements Plugin<Project> {
 	private Project project
 
 	private DropWizardPluginExtension pluginExtension
-	
+
 	static final String TASK_DIST_TAR_NAME = "distTar"
-	
+
 	static final String DROPWIZ_GROUP = "dropwizard"
-	
+
 	static final String TASK_START_SCRIPTS_NAME = "startScripts"
-	
+
 	static final String FAT_JAR_TASK_NAME = "fatJar"
+	
+	static final String FATJAR_PREPARE_FILES = "fatJarPrepareFiles"
 
 	public void apply(Project project) {
 		project.extensions.create('dropwizard', DropWizardPluginExtension)
 		this.project = project
 		project.apply(plugin: 'java')
 		project.plugins.apply FatJarPlugin
+		configureMergeFiles()
 		addJavaExecTask()
 		addFatJarTask()
 		addCreateScriptsTask()
 		addArchiveTask()
+	}
+	
+	private void configureMergeFiles( ) {
+		def preparefiles = project.tasks.findByName(FATJAR_PREPARE_FILES)
+		preparefiles.doFirst( {
+				preparefiles.include('META-INF/spring.schemas')
+				preparefiles.include('META-INF/spring.handlers')
+			}
+		)
 	}
 
 
@@ -44,23 +56,30 @@ class DropWizardPlugin implements Plugin<Project> {
 		run.conventionMapping.main = { project.dropwizard.mainClassName }
 	}
 
-	def addFatJarTask( ) {
+	private void addFatJarTask( ) {
 		def fatjar = project.tasks.findByName(FAT_JAR_TASK_NAME)
 		fatjar.group = DROPWIZ_GROUP
+		fatjar.doFirst {
+			fatjar.manifest( {
+				attributes("Main-Class": project.dropwizard.mainClassName)
+			} )
+			fatjar.exclude("META-INF/*.DSA")
+			fatjar.exclude("META-INF/*.RSA")
+			fatjar.exclude("META-INF/*.SF")
+		}
+		
 	}
 	
-	def addArchiveTask( ) {
+	private void addArchiveTask( ) {
 		def archiveTask = project.tasks.add(TASK_DIST_TAR_NAME, Tar )
 		archiveTask.description = "Bundles the project as a JVM application with libs and OS specific scripts."
-        archiveTask.group = DROPWIZ_GROUP
-        archiveTask.conventionMapping.baseName = { project.name }
-        def baseDir = { archiveTask.archiveName - ".${archiveTask.extension}" }
-        archiveTask.into(baseDir) {
-            with(configureDistSpec())
-        }
+		archiveTask.group = DROPWIZ_GROUP
+		archiveTask.conventionMapping.baseName = { project.name }
+		def baseDir = { archiveTask.archiveName - ".${archiveTask.extension}" }
+		archiveTask.into(baseDir) { with(configureDistSpec()) }
 	}
-	
-	def addCreateScriptsTask() {
+
+	private void addCreateScriptsTask() {
 		def startScripts = project.tasks.add(TASK_START_SCRIPTS_NAME, CreateStartScripts)
 		startScripts.description = "Creates OS specific scripts to run the project as a JVM application."
 		//since this is a fat jar app we don't need to include the runtime deps
@@ -69,8 +88,8 @@ class DropWizardPlugin implements Plugin<Project> {
 		startScripts.conventionMapping.applicationName = {project.name}
 		startScripts.conventionMapping.outputDir = { new File(project.buildDir, 'scripts') }
 	}
-	
-	def CopySpec configureDistSpec() {
+
+	private CopySpec configureDistSpec() {
 		def distSpec = project.copySpec {}
 		def jar = project.tasks[FAT_JAR_TASK_NAME]
 		def startScripts = project.tasks[TASK_START_SCRIPTS_NAME]
@@ -78,9 +97,7 @@ class DropWizardPlugin implements Plugin<Project> {
 		distSpec.with {
 			from(project.file("src/dist"))
 
-			into("lib") {
-				from(jar)
-			}
+			into("lib") { from(jar) }
 			into("bin") {
 				from(startScripts)
 				fileMode = 0755
