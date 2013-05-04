@@ -6,6 +6,9 @@ Gradle Dropwizard Plugin allows you to easily create apps in the style that drop
 buildscript {
     repositories {
         mavenCentral()
+	maven {
+	   url 'nexus.bericotechnologies.com/content/repositories/releases'
+	}
     }
     
     dependencies {
@@ -48,8 +51,10 @@ version = '1.0'
 buildscript {
 	repositories {
 		maven {
-			url uri('../repo')
 			mavenCentral()
+		}
+		maven {
+			url 'nexus.bericotechnologies.com/content/repositories/releases'
 		}
 	}
 	dependencies {
@@ -66,20 +71,8 @@ dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.+'
 }
 
-ext.mainclass = "org.gradle.MyMain"
 
-//Defines the main class in a dropwizard configurtion ( allows you to run the jar from gradle using "gradle run"
 dropwizard {
-	mainClassName = mainclass
+	mainClassName = "your.main.class.name"
 }
-
-//Tells the fatjar task where what your main class is so it can be added to the MANIFEST
-fatJar {
-	manifest {
-		attributes("Main-Class": mainclass)
-	}
-}
-
-
-
 ```
