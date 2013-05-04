@@ -33,9 +33,11 @@ task wrapper(type: Wrapper) {
 //}
 
 uploadArchives {
-	repositories {
-		mavenDeployer {
-			repository(url: uri('/home/camechis/.m2/repository'))
-		}
-	}
+    repositories {
+        mavenDeployer {
+            repository(url: "http://nexus.bericotechnologies.com/content/repositories/releases/") {
+                authentication(userName: mavenUser, password: mavenPassword)
+            }
+        }
+    }
 }

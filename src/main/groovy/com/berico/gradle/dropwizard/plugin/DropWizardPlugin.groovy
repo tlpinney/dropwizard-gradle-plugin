@@ -40,6 +40,7 @@ class DropWizardPlugin implements Plugin<Project> {
 	
 	private void configureMergeFiles( ) {
 		def preparefiles = project.tasks.findByName(FATJAR_PREPARE_FILES)
+		preparefiles.group = DROPWIZ_GROUP
 		preparefiles.doFirst( {
 				preparefiles.include('META-INF/spring.schemas')
 				preparefiles.include('META-INF/spring.handlers')
