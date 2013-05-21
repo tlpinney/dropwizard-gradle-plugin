@@ -50,7 +50,7 @@ class DropWizardPlugin implements Plugin<Project> {
 
 
 	private void addJavaExecTask( ) {
-		def run = project.tasks.add("run", JavaExec)
+		def run = project.tasks.create("run", JavaExec)
 		run.description = "Runs this project as a JVM application"
 		run.group = "dropwizard"
 		run.classpath = project.sourceSets.main.runtimeClasspath
@@ -59,20 +59,23 @@ class DropWizardPlugin implements Plugin<Project> {
 
 	private void addFatJarTask( ) {
 		def fatjar = project.tasks.findByName(FAT_JAR_TASK_NAME)
-		fatjar.group = DROPWIZ_GROUP
-		fatjar.doFirst {
-			fatjar.manifest( {
+		def jar = project.tasks.findByName("jar")
+		File stageDir = new File(project.buildDir.absolutePath + FatJarPlugin.FATJAR_STAGE_DIR)
+		jar.dependsOn project.fatJarPrepareFiles
+		jar.from stageDir
+		jar.doFirst {
+			jar.manifest( {
 				attributes("Main-Class": project.dropwizard.mainClassName)
 			} )
-			fatjar.exclude("META-INF/*.DSA")
-			fatjar.exclude("META-INF/*.RSA")
-			fatjar.exclude("META-INF/*.SF")
+			jar.exclude("META-INF/*.DSA")
+			jar.exclude("META-INF/*.RSA")
+			jar.exclude("META-INF/*.SF")
 		}
-		
+		project.tasks.remove(fatjar)
 	}
 	
 	private void addArchiveTask( ) {
-		def archiveTask = project.tasks.add(TASK_DIST_TAR_NAME, Tar )
+		def archiveTask = project.tasks.create(TASK_DIST_TAR_NAME, Tar )
 		archiveTask.description = "Bundles the project as a JVM application with libs and OS specific scripts."
 		archiveTask.group = DROPWIZ_GROUP
 		archiveTask.conventionMapping.baseName = { project.name }
@@ -81,10 +84,11 @@ class DropWizardPlugin implements Plugin<Project> {
 	}
 
 	private void addCreateScriptsTask() {
-		def startScripts = project.tasks.add(TASK_START_SCRIPTS_NAME, CreateStartScripts)
+		def startScripts = project.tasks.create(TASK_START_SCRIPTS_NAME, CreateStartScripts)
 		startScripts.description = "Creates OS specific scripts to run the project as a JVM application."
 		//since this is a fat jar app we don't need to include the runtime deps
-		startScripts.classpath = project.tasks[FAT_JAR_TASK_NAME].outputs.files
+		//startScripts.classpath = project.tasks[FAT_JAR_TASK_NAME].outputs.files
+		startScripts.classpath = project.tasks["jar"].outputs.files
 		startScripts.conventionMapping.mainClassName = { project.dropwizard.mainClassName }
 		startScripts.conventionMapping.applicationName = {project.name}
 		startScripts.conventionMapping.outputDir = { new File(project.buildDir, 'scripts') }
@@ -92,7 +96,8 @@ class DropWizardPlugin implements Plugin<Project> {
 
 	private CopySpec configureDistSpec() {
 		def distSpec = project.copySpec {}
-		def jar = project.tasks[FAT_JAR_TASK_NAME]
+		//def jar = project.tasks[FAT_JAR_TASK_NAME]
+		def jar = project.tasks["jar"]
 		def startScripts = project.tasks[TASK_START_SCRIPTS_NAME]
 
 		distSpec.with {

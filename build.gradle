@@ -15,7 +15,7 @@ repositories {
 
 dependencies {
   compile gradleApi()
-  groovy localGroovy()
+  compile localGroovy()
   compile 'eu.appsatori:gradle-fatjar-plugin:0.2-rc1'
 }
 
