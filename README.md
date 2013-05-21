@@ -24,12 +24,6 @@ All configuration files such as your YAML file can be placed under PROJECT_ROOT_
 
 ## Tasks
 
-### `fatJar`
-
-Creates the fat jar with all dependencies bundled in.
-
-You can configure this just as the standard jar task in the JavaPlugin
-
 ### `createStartupScrips`
 will generate startup scripts for your application for unix and windows
 
